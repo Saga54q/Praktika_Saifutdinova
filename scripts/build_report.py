@@ -102,13 +102,17 @@ def add_table(doc, headers, rows, col_widths=None):
 
 def add_page_number(section):
     footer = section.footer
+    footer.is_linked_to_previous = False
+    # clear existing paragraphs
+    for p in footer.paragraphs:
+        p.clear()
     p = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.first_line_indent = None
-    # clear existing
-    p.clear()
+    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_after = Pt(0)
     run = p.add_run()
-    set_run_font(run, size=12)
+    set_run_font(run, size=10)
     fldChar1 = OxmlElement('w:fldChar')
     fldChar1.set(qn('w:fldCharType'), 'begin')
     instrText = OxmlElement('w:instrText')
@@ -118,16 +122,34 @@ def add_page_number(section):
     run._r.extend([fldChar1, instrText, fldChar2])
 
 
+def add_page_borders(section):
+    """Добавляет рамку страницы по образцу формата отчёта."""
+    sectPr = section._sectPr
+    pgBorders = sectPr.find(qn('w:pgBorders'))
+    if pgBorders is None:
+        pgBorders = OxmlElement('w:pgBorders')
+        pgBorders.set(qn('w:offsetFrom'), 'page')
+        for side in ('top', 'left', 'bottom', 'right'):
+            border = OxmlElement(f'w:{side}')
+            border.set(qn('w:val'), 'single')
+            border.set(qn('w:sz'), '12')
+            border.set(qn('w:space'), '24')
+            border.set(qn('w:color'), '000000')
+            pgBorders.append(border)
+        sectPr.append(pgBorders)
+
+
 def configure_document(doc):
     section = doc.sections[0]
     section.page_width = Mm(210)
     section.page_height = Mm(297)
-    section.left_margin = Mm(30)
-    section.right_margin = Mm(15)
-    section.top_margin = Mm(20)
-    section.bottom_margin = Mm(20)
+    section.left_margin = Mm(25)
+    section.right_margin = Mm(10)
+    section.top_margin = Mm(15)
+    section.bottom_margin = Mm(15)
     section.header_distance = Mm(10)
     section.footer_distance = Mm(10)
+    add_page_borders(section)
     # normal style
     style = doc.styles['Normal']
     style.font.name = 'Times New Roman'
